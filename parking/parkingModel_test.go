@@ -1,52 +1,60 @@
 package parking
 
 import (
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func Test(t *testing.T) {
+func TestNewCar(t *testing.T) {
 	type args struct {
-		dividend float64
-		divisor  float64
+		tipe     string
+		colour   string
+		plateNum string
 	}
 	tests := []struct {
-		name    string
-		args    args // Given.
-		want    float64
-		wantErr string
+		name string
+		args args
+		want *Car
 	}{
-		{
-			name: "Division of two positive numbers should return the correct result",
-			args: args{
-				dividend: float64(20),
-				divisor:  float64(10),
-			},
-			want:    float64(2),
-			wantErr: "",
-		},
-		{
-			name: "Division by zero should return an error",
-			args: args{
-				dividend: float64(20),
-				divisor:  float64(0),
-			},
-			want:    float64(0),
-			wantErr: "error cannot divide by zero",
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// When.
-			got, err := AttAddCar(tt.args.dividend, tt.args.divisor)
-
-			// Then.
-			if tt.wantErr != "" {
-				assert.EqualError(t, err, tt.wantErr)
+			if got := NewCar(tt.args.tipe, tt.args.colour, tt.args.plateNum); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewCar() = %v, want %v", got, tt.want)
 			}
-			assert.Equal(t, tt.want, got)
+		})
+	}
+}
 
+func TestAttendant_AddParkingLot(t *testing.T) {
+	type fields struct {
+		Name         string
+		ParkingLot   []*Parking
+		Car          *Car
+		Ticket       string
+		Subscription Subscription
+	}
+	type args struct {
+		parkir *Parking
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Attendant{
+				Name:         tt.fields.Name,
+				ParkingLot:   tt.fields.ParkingLot,
+				Car:          tt.fields.Car,
+				Ticket:       tt.fields.Ticket,
+				Subscription: tt.fields.Subscription,
+			}
+			a.AddParkingLot(tt.args.parkir)
 		})
 	}
 }

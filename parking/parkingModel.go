@@ -6,15 +6,20 @@ import (
 	"strconv"
 )
 
-var noAvailableSpace = errors.New("no available parking space")
-var wrongParkingLot = errors.New("wrong parking lot")
-var unrecognizedParkingLot = errors.New("unrecognized parking lot")
-var unrecognizedParkingTicket = errors.New("unrecognized parking ticket")
-var carAlreadyParked = errors.New("car already parked")
-var cannotFindCar = errors.New("car is not in the parking lot")
-var noSubscribe = errors.New("does not subscribe")
+var (
+	noAvailableSpace          = errors.New("no available parking space")
+	wrongParkingLot           = errors.New("wrong parking lot")
+	unrecognizedParkingLot    = errors.New("unrecognized parking lot")
+	unrecognizedParkingTicket = errors.New("unrecognized parking ticket")
+	carAlreadyParked          = errors.New("car already parked")
+	cannotFindCar             = errors.New("car is not in the parking lot")
+	noSubscribe               = errors.New("does not subscribe")
+)
 
-var ticketNum int = 0
+var (
+	ticketNum   int = 0
+	attendantId int = 0
+)
 
 type Car struct {
 	Tipe     string
@@ -22,32 +27,37 @@ type Car struct {
 	PlateNum string
 }
 
-type ParkingItf interface {
-	AddCar(car Car) (string, error)
-	GetCar(ticket string) (string, error)
-}
+// type ParkingItf interface {
+// 	AddCar(car Car) (string, error)
+// 	GetCar(ticket string) (string, error)
+// }
 
 type Parking struct {
-	Name       string
-	MaxLot     int
-	LotCounter int
-	Status     bool
-	Car        []Car
-	Ticket     []Ticket
+	Name         string
+	MaxLot       int
+	LotCounter   int
+	Status       bool
+	Car          []Car
+	Ticket       []Ticket
+	observerList []Observer
 }
 
 type Attendant struct {
-	Name         string
-	ParkingLot   []*Parking
-	Car          *Car
-	Ticket       string
-	Subscription Subscription
+	id         string
+	Name       string
+	ParkingLot []*Parking
+	Car        *Car
+	Ticket     string
+	ParkirFull ParkirFull
+	// Subscription Subscription
 }
 
 // type Subscription struct {
 // 	ParkingLot Parking
 // 	Subscribe  bool
 // }
+
+type ParkirFull (map[string]bool)
 
 type Subscription (map[string]bool)
 
@@ -82,11 +92,14 @@ func NewTicket(number string, car Car) *Ticket {
 	}
 }
 
-func NewAttendant(name string, lot *Parking, subscribe Subscription) *Attendant {
+func NewAttendant(name string, lot *Parking) *Attendant {
+	attendantId++
 	return &Attendant{
-		Name:         name,
-		ParkingLot:   []*Parking{lot},
-		Subscription: subscribe,
+		id:         string(attendantId),
+		Name:       name,
+		ParkingLot: []*Parking{lot},
+		ParkirFull: ParkirFull{},
+		// Subscription: subscribe,
 	}
 }
 
@@ -94,50 +107,109 @@ func (a *Attendant) AddParkingLot(parkir *Parking) {
 	a.ParkingLot = append(a.ParkingLot, parkir)
 }
 
-func (a *Attendant) ToggleSubscription(parkir Parking) {
-	a.Subscription[parkir.Name] = !a.Subscription[parkir.Name]
+func (a *Attendant) Update(name string, status bool) bool {
+	if status {
+		fmt.Println("Parking ", name, " full")
+		a.ParkirFull[name] = status
+		return status
+	} else {
+		fmt.Printf("Parking not full")
+		return status
+	}
 }
 
-func (a *Attendant) CheckFUll(parkir Parking) (bool, error) {
-	_, ok := a.Subscription[parkir.Name]
-	if ok {
-		if parkir.Status == true {
-			return true, noAvailableSpace
+func (a *Attendant) GetID() string {
+	return a.id
+}
+
+// func (a *Attendant) ToggleSubscription(parkir Parking) {
+// 	a.Subscription[parkir.Name] = !a.Subscription[parkir.Name]
+// }
+
+// func (a *Attendant) CheckFUll(parkir Parking) (bool, error) {
+// 	_, ok := a.Subscription[parkir.Name]
+// 	if ok {
+// 		if parkir.Status == true {
+// 			return true, noAvailableSpace
+// 		}
+// 	}
+// 	return false, noSubscribe
+// }
+
+func (p *Parking) Register(o Observer) {
+	p.observerList = append(p.observerList, o)
+}
+
+func (p *Parking) Deregister(o Observer) {
+	p.observerList = removeFromslice(p.observerList, o)
+}
+
+func (p *Parking) NotifyAll() {
+	for _, observer := range p.observerList {
+		observer.Update(p.Name, p.Status)
+	}
+}
+
+func removeFromslice(observerList []Observer, observerToRemove Observer) []Observer {
+	observerListLength := len(observerList)
+	for i, observer := range observerList {
+		if observerToRemove.GetID() == observer.GetID() {
+			observerList[observerListLength-1], observerList[i] = observerList[i], observerList[observerListLength-1]
+			return observerList[:observerListLength-1]
 		}
 	}
-	return false, noSubscribe
+	return observerList
 }
 
-var contoh int
+func (p *Parking) CheckFull() bool {
+	if p.MaxLot != p.LotCounter {
+		p.Status = false
+		return false
+	}
+	p.Status = true
+	p.NotifyAll()
+	return true
+}
 
-var contoh2 Car
-
-func (p *Parking) AddCar(car *Car) (string, error) {
-	// fmt.Println(p.Car)
+func (p *Parking) CheckCarExist(car *Car) (string, error) {
 	for i := range len(p.Car) {
 		// fmt.Println(i)
-		fmt.Println(len(p.Car))
-		fmt.Println("masuk", car.PlateNum, "dicek", p.Car[i].PlateNum)
+		// fmt.Println(len(p.Car))
+		// fmt.Println("masuk", car.PlateNum, "dicek", p.Car[i].PlateNum)
 		if car.PlateNum == p.Car[i].PlateNum {
 			return "Car already parked", carAlreadyParked
 		}
 		// fmt.Println("sampe sini")
 	}
+	return "Car is not recognized", nil
+}
+
+func (p *Parking) AddCar(car *Car) (string, error) {
+	// fmt.Println(p.Car)
+	// for i := range len(p.Car) {
+	// 	// fmt.Println(i)
+	// 	fmt.Println(len(p.Car))
+	// 	fmt.Println("masuk", car.PlateNum, "dicek", p.Car[i].PlateNum)
+	// 	if car.PlateNum == p.Car[i].PlateNum {
+	// 		return "Car already parked", carAlreadyParked
+	// 	}
+	// 	// fmt.Println("sampe sini")
+	// }
 	if p.MaxLot > len(p.Car) {
 		p.LotCounter++
 		ticketNumber := "ticket#" + strconv.Itoa(ticketNum)
 		ticketNum++
-		fmt.Println("Car yg diappend ", car)
+		// fmt.Println("Car yg diappend ", car)
 		p.Car = append(p.Car, *car)
-		fmt.Println("Car parking lot ", p.Car)
+		// fmt.Println("Car parking lot ", p.Car)
 		ticket := NewTicket(ticketNumber, *car)
 		p.Ticket = append(p.Ticket, *ticket)
-		if p.LotCounter == p.MaxLot {
-			p.Status = true
-		}
+		p.CheckFull()
 		// p.Ticket[ticket.Number] = p.Ticket[ticket.Car.Tipe]
 		return ticket.Number, nil
 	} else {
+		// p.Status = true
+		// p.NotifyAll()
 		return "Cannot park", noAvailableSpace
 	}
 }
@@ -156,11 +228,13 @@ func (p *Parking) GetCar(ticket string) (string, error) {
 		// fmt.Println("Yg dipake ", ticket)
 		if p.Ticket[i].Number == ticket {
 			for j := range len(p.Car) {
-				fmt.Println(p.Car[j].PlateNum)
-				fmt.Println(p.Ticket[j].Car.PlateNum)
+				// fmt.Println(p.Car[j].PlateNum)
+				// fmt.Println(p.Ticket[j].Car.PlateNum)
 				if p.Car[j].PlateNum == p.Ticket[i].Car.PlateNum {
 					p.Car = append(p.Car[:j], p.Car[j+1:]...)
 					p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
+					p.LotCounter--
+					p.CheckFull()
 					// fmt.Println("Pas udh diambil tiketnya ", p.Ticket)
 					// fmt.Println("Pas udh diambil mobilnya ", p.Car)
 
@@ -177,16 +251,25 @@ func (a *Attendant) AttAddCar(car *Car) (string, error) {
 	a.Car = car
 	for i := range len(a.ParkingLot) {
 		p := a.ParkingLot[i]
-		val, _ := a.CheckFUll(*p)
-		if val == true {
-			fmt.Println("Parkiran ", p.Name, " penuh")
+		res, err := p.CheckCarExist(car)
+		if err != nil {
+			return res, err
+		}
+		// fmt.Println("nama parkir yg dimasukin ", p.Name)
+		if a.ParkirFull[p.Name] {
 			continue
 		}
-		res, err := p.AddCar(a.Car)
+		// val, _ := a.CheckFUll(*p)
+		// if val == true {
+		// 	fmt.Println("Parkiran ", p.Name, " penuh")
+		// 	continue
+		// }
+		res, err = p.AddCar(a.Car)
 		if err == nil {
 			a.Ticket = res
 			a.Car = nil
-			fmt.Println("Diisi di parkiran ", p.Name, " mobilnya ", p.Car)
+			// fmt.Println("Diisi di parkiran ", p.Name, " mobilnya ", p.Car)
+			// p.CheckFull()
 			return res, nil
 		} else {
 			return res, err

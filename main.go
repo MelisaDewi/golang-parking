@@ -18,18 +18,25 @@ func io(textInput string) string {
 func main() {
 
 	// var nyobaSub map[string]bool{"test":false}
-	var mapBool map[string]bool = make(map[string]bool)
+	// var mapBool map[string]bool = make(map[string]bool)
 	// var subscription parking.Subscription
 	parkir := parking.NewParking("parkir 1", 1)
 	parkir2 := parking.NewParking("parkir 2", 1)
 	parkir3 := parking.NewParking("parkir 3", 1)
-	parkirs := []parking.Parking{*parkir, *parkir2, *parkir3}
-	for i := range len(parkirs) {
-		mapBool[parkirs[i].Name] = false
-	}
-	attendant := parking.NewAttendant("nama si attendant", parkir, mapBool)
-	attendant2 := parking.NewAttendant("nama si attendant kedua", parkir2, mapBool)
+	// parkirs := []parking.Parking{*parkir, *parkir2, *parkir3}
+	// for i := range len(parkirs) {
+	// 	mapBool[parkirs[i].Name] = false
+	// }
+	attendant := parking.NewAttendant("nama si attendant", parkir)
 	attendant.AddParkingLot(parkir3)
+
+	attendant2 := parking.NewAttendant("nama si attendant kedua", parkir2)
+	attendant2.AddParkingLot(parkir3)
+
+	parkir.Register(attendant)
+	parkir3.Register(attendant)
+
+	parkir2.Register(attendant2)
 	// attendants := []parking.Attendant{*attendant, *attendant2}
 
 	// mauApa := ""
@@ -95,6 +102,7 @@ func main() {
 	// mobilp := io("Isi plat nomor mobil: ")
 
 	// mobil1 := parking.NewCar(mobilt, mobilc, mobilp)
+
 	mobil1 := parking.NewCar("tipe1", "koneng", "0000")
 	mobil2 := parking.NewCar("tipe2", "putih", "1244")
 	mobil3 := parking.NewCar("tipe3", "hitam", "4444")
@@ -108,18 +116,7 @@ func main() {
 	} else {
 		fmt.Println(err.Error())
 	}
-	fmt.Println("Parking lot yg di main ", parkir.Car)
-	fmt.Println("----------------------------")
-	fmt.Println("Nyoba isi di parking 2")
-
-	ticket1, err1 := attendant.AttAddCar(mobil2)
-
-	if err1 == nil {
-		fmt.Println("tiket mobil 2: ", ticket1)
-	} else {
-		fmt.Println(err1.Error())
-	}
-	fmt.Println(parkir3.Car)
+	// fmt.Println("Parking lot yg di main ", parkir.Car)
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba isi yang sama")
 	// fmt.Println(ticket1)
@@ -131,12 +128,27 @@ func main() {
 	} else {
 		fmt.Println(err2.Error())
 	}
-	fmt.Println(parkir.Car)
+	fmt.Println("----------------------------")
+	fmt.Println("Nyoba isi di parking 3")
+
+	ticket1, err1 := attendant.AttAddCar(mobil2)
+
+	if err1 == nil {
+		fmt.Println("tiket mobil 2: ", ticket1)
+	} else {
+		fmt.Println(err1.Error())
+	}
+	fmt.Println(parkir3.Car)
+	// fmt.Println(parkir.Car)
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba full")
+	// res, err := attendant.CheckFUll(*parkir)
+	// if res == true {
+	// 	fmt.Println("Parkiran 1 penuh")
+	// }
 
 	ticket3, err3 := attendant.AttAddCar(mobil3)
-	if err2 == nil {
+	if err3 == nil {
 		fmt.Println(ticket3)
 	} else {
 		fmt.Println(err3.Error())
@@ -147,7 +159,7 @@ func main() {
 	fmt.Println("Nyoba di attendant 2")
 
 	ticket4, err4 := attendant2.AttAddCar(mobil3)
-	if err2 == nil {
+	if err4 == nil {
 		fmt.Println(ticket4)
 	} else {
 		fmt.Println(err4.Error())
