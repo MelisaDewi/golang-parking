@@ -20,6 +20,7 @@ func main() {
 	// var nyobaSub map[string]bool{"test":false}
 	// var mapBool map[string]bool = make(map[string]bool)
 	// var subscription parking.Subscription
+	parkingSystem := parking.NewParkingSystem()
 	parkir := parking.NewParking("parkir 1", 1)
 	parkir2 := parking.NewParking("parkir 2", 1)
 	parkir3 := parking.NewParking("parkir 3", 1)
@@ -109,7 +110,7 @@ func main() {
 
 	fmt.Println("Nyoba isi di parking 1")
 
-	ticket, err := attendant.AttAddCar(mobil1)
+	ticket, err := attendant.AttAddCar(&parkingSystem, mobil1)
 
 	if err == nil {
 		fmt.Println("tiket mobil 1: ", ticket)
@@ -122,7 +123,7 @@ func main() {
 	// fmt.Println(ticket1)
 	// fmt.Println(parkir.Ticket)
 	// fmt.Println(parkir.TicketCounter)
-	ticket2, err2 := attendant.AttAddCar(mobil1)
+	ticket2, err2 := attendant.AttAddCar(&parkingSystem, mobil1)
 	if err2 == nil {
 		fmt.Println(ticket2)
 	} else {
@@ -131,7 +132,7 @@ func main() {
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba isi di parking 3")
 
-	ticket1, err1 := attendant.AttAddCar(mobil2)
+	ticket1, err1 := attendant.AttAddCar(&parkingSystem, mobil2)
 
 	if err1 == nil {
 		fmt.Println("tiket mobil 2: ", ticket1)
@@ -147,7 +148,7 @@ func main() {
 	// 	fmt.Println("Parkiran 1 penuh")
 	// }
 
-	ticket3, err3 := attendant.AttAddCar(mobil3)
+	ticket3, err3 := attendant.AttAddCar(&parkingSystem, mobil3)
 	if err3 == nil {
 		fmt.Println(ticket3)
 	} else {
@@ -158,7 +159,7 @@ func main() {
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba di attendant 2")
 
-	ticket4, err4 := attendant2.AttAddCar(mobil3)
+	ticket4, err4 := attendant2.AttAddCar(&parkingSystem, mobil3)
 	if err4 == nil {
 		fmt.Println(ticket4)
 	} else {
@@ -170,7 +171,7 @@ func main() {
 	fmt.Println("Nyoba ngambil mobil tiket valid")
 	// fmt.Println(parkir.Car)
 	// fmt.Println(ticket)
-	ngambil, err := attendant.AttGetCar(ticket1)
+	ngambil, err := attendant.AttGetCar(&parkingSystem, ticket1)
 	if err == nil {
 		fmt.Println(ngambil)
 	} else {
@@ -179,7 +180,7 @@ func main() {
 	// fmt.Println(parkir.Car)
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba ngambil mobil tiket ga valid punya sebelah")
-	ngambil2, err := attendant2.AttGetCar(ticket)
+	ngambil2, err := attendant2.AttGetCar(&parkingSystem, ticket)
 	if err == nil {
 		fmt.Println(ngambil2)
 	} else {
@@ -188,7 +189,7 @@ func main() {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba ngambil mobil tiket valid")
-	ngambil3, err := attendant.AttGetCar(ticket)
+	ngambil3, err := attendant.AttGetCar(&parkingSystem, ticket)
 	if err == nil {
 		fmt.Println(ngambil3)
 	} else {
@@ -198,7 +199,7 @@ func main() {
 	fmt.Println("----------------------------")
 	fmt.Println("Nyoba ngambil mobil tiket valid")
 
-	ngambil4, err := attendant2.AttGetCar(ticket4)
+	ngambil4, err := attendant2.AttGetCar(&parkingSystem, ticket4)
 	if err == nil {
 		fmt.Println(ngambil4)
 	} else {

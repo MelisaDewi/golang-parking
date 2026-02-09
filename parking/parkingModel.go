@@ -32,6 +32,11 @@ type Car struct {
 // 	GetCar(ticket string) (string, error)
 // }
 
+type ParkingSystem struct {
+	CarNum map[string]struct{}
+	Ticket map[string]struct{}
+}
+
 type Parking struct {
 	Name         string
 	MaxLot       int
@@ -76,6 +81,13 @@ func NewCar(tipe, colour, plateNum string) *Car {
 	}
 }
 
+func NewParkingSystem() ParkingSystem {
+	return ParkingSystem{
+		CarNum: make(map[string]struct{}),
+		Ticket: make(map[string]struct{}),
+		// TicketCounter: ticketCounter,
+	}
+}
 func NewParking(name string, maxLot int) *Parking {
 	return &Parking{
 		Name:   name,
@@ -184,7 +196,23 @@ func (p *Parking) CheckCarExist(car *Car) (string, error) {
 	return "Car is not recognized", nil
 }
 
-func (p *Parking) AddCar(car *Car) (string, error) {
+func (ps *ParkingSystem) CheckCarExist(car *Car) (string, error) {
+	_, ok := ps.CarNum[car.PlateNum]
+	if ok {
+		return "Car already parked", carAlreadyParked
+	}
+	return "Car is not recognized", nil
+}
+
+func (ps *ParkingSystem) CheckTicketExist(ticket string) (string, error) {
+	_, ok := ps.Ticket[ticket]
+	if ok {
+		return "Ticket exists", nil
+	}
+	return "Invalid ticket", unrecognizedParkingTicket
+}
+
+func (p *Parking) AddCar(ps *ParkingSystem, car *Car) (string, error) {
 	// fmt.Println(p.Car)
 	// for i := range len(p.Car) {
 	// 	// fmt.Println(i)
@@ -204,6 +232,7 @@ func (p *Parking) AddCar(car *Car) (string, error) {
 		// fmt.Println("Car parking lot ", p.Car)
 		ticket := NewTicket(ticketNumber, *car)
 		p.Ticket = append(p.Ticket, *ticket)
+		ps.Ticket[ticketNumber] = struct{}{}
 		p.CheckFull()
 		// p.Ticket[ticket.Number] = p.Ticket[ticket.Car.Tipe]
 		return ticket.Number, nil
@@ -214,40 +243,44 @@ func (p *Parking) AddCar(car *Car) (string, error) {
 	}
 }
 
-func (p *Parking) GetCar(ticket string) (string, error) {
-	if len(ticket) < 7 {
-		return "Invalid ticket", unrecognizedParkingTicket
-	}
-	if ticket[:7] != "ticket#" {
-		return "Invalid ticket", unrecognizedParkingTicket
-	}
-	for i := range p.Ticket {
-		// fmt.Println("Avail parking tickets ", p.Ticket)
-		// fmt.Println("Avail cars ", p.Car)
-		// fmt.Println("Parking ticket ", p.Ticket[i].Number)
-		// fmt.Println("Yg dipake ", ticket)
-		if p.Ticket[i].Number == ticket {
-			for j := range len(p.Car) {
-				// fmt.Println(p.Car[j].PlateNum)
-				// fmt.Println(p.Ticket[j].Car.PlateNum)
-				if p.Car[j].PlateNum == p.Ticket[i].Car.PlateNum {
-					p.Car = append(p.Car[:j], p.Car[j+1:]...)
-					p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
-					p.LotCounter--
-					p.CheckFull()
-					// fmt.Println("Pas udh diambil tiketnya ", p.Ticket)
-					// fmt.Println("Pas udh diambil mobilnya ", p.Car)
+func (p *Parking) GetCar(ps *ParkingSystem, ticket string) (string, error) {
+	fmt.Println(ticket)
+	_, err := ps.CheckTicketExist(ticket)
+	if err == nil {
+		for i := range p.Ticket {
+			// fmt.Println("Avail parking tickets ", p.Ticket)
+			// fmt.Println("Avail cars ", p.Car)
+			// fmt.Println("Parking ticket ", p.Ticket[i].Number)
+			// fmt.Println("Yg dipake ", ticket)
+			if p.Ticket[i].Number == ticket {
+				for j := range len(p.Car) {
+					// fmt.Println(p.Car[j].PlateNum)
+					// fmt.Println(p.Ticket[j].Car.PlateNum)
+					if p.Car[j].PlateNum == p.Ticket[i].Car.PlateNum {
+						p.Car = append(p.Car[:j], p.Car[j+1:]...)
+						p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
+						p.LotCounter--
+						p.CheckFull()
+						// fmt.Println("Pas udh diambil tiketnya ", p.Ticket)
+						// fmt.Println("Pas udh diambil mobilnya ", p.Car)
 
-					return "Car successfully unparked", nil
+						return "Car successfully unparked", nil
+					}
 				}
 			}
 		}
 	}
+	// if len(ticket) < 7 {
+	// 	return "Invalid ticket", unrecognizedParkingTicket
+	// }
+	// if ticket[:7] != "ticket#" {
+	// 	return "Invalid ticket", unrecognizedParkingTicket
+	// }
 
 	return "Invalid ticket", unrecognizedParkingTicket
 }
 
-func (a *Attendant) AttAddCar(car *Car) (string, error) {
+func (a *Attendant) AttAddCar(ps *ParkingSystem, car *Car) (string, error) {
 	a.Car = car
 	for i := range len(a.ParkingLot) {
 		p := a.ParkingLot[i]
@@ -264,7 +297,7 @@ func (a *Attendant) AttAddCar(car *Car) (string, error) {
 		// 	fmt.Println("Parkiran ", p.Name, " penuh")
 		// 	continue
 		// }
-		res, err = p.AddCar(a.Car)
+		res, err = p.AddCar(ps, a.Car)
 		if err == nil {
 			a.Ticket = res
 			a.Car = nil
@@ -278,7 +311,7 @@ func (a *Attendant) AttAddCar(car *Car) (string, error) {
 	return "Kayaknya parkirannya penuh", noAvailableSpace
 }
 
-func (a *Attendant) AttGetCar(ticket string) (string, error) {
+func (a *Attendant) AttGetCar(ps *ParkingSystem, ticket string) (string, error) {
 	// if len(ticket) < 7 {
 	// 	return "Invalid ticket", unrecognizedParkingTicket
 	// }
@@ -290,7 +323,7 @@ func (a *Attendant) AttGetCar(ticket string) (string, error) {
 	// 	if ticket == a.Ticket[i] {
 	for i := range len(a.ParkingLot) {
 		p := a.ParkingLot[i]
-		res, err := p.GetCar(ticket)
+		res, err := p.GetCar(ps, ticket)
 		if err == nil {
 			a.Ticket = ""
 			return res, nil
