@@ -1,4 +1,4 @@
-package parking
+package observer
 
 type Observer interface {
 	Update(string, bool) bool
