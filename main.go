@@ -41,15 +41,15 @@ func main() {
 	parkir2.Register(attendant2)
 
 	// fmt.Println(attendant.ParkingLot)
-	fmt.Println(attendant.ParkingLot[0].GetName())
-	fmt.Println(attendant.ParkingLot[1].GetName())
-	// fmt.Println(attendant2.ParkingLot)
+	// fmt.Println(attendant.ParkingLot[0].GetName())
+	// fmt.Println(attendant.ParkingLot[1].GetName())
+	// // fmt.Println(attendant2.ParkingLot)
 
-	attendant.ArrangeParkingLot()
-	// attendant2.ArrangeParkingLot()
+	// attendant.ArrangeParkingLot()
+	// // attendant2.ArrangeParkingLot()
 
-	fmt.Println(attendant.ParkingLot[0].GetName())
-	fmt.Println(attendant.ParkingLot[1].GetName())
+	// fmt.Println(attendant.ParkingLot[0].GetName())
+	// fmt.Println(attendant.ParkingLot[1].GetName())
 	// fmt.Println(attendant2.ParkingLot)
 	// attendants := []parking.Attendant{*attendant, *attendant2}
 

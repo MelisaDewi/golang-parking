@@ -51,13 +51,14 @@ type Parking struct {
 }
 
 type Attendant struct {
-	id         string
-	Name       string
-	ParkingLot []model.ParkingItf
-	Car        *model.Car
-	Ticket     string
-	ParkirFull ParkirFull
-	styleSort  bool
+	id             string
+	Name           string
+	ParkingLot     []model.ParkingItf
+	ParkingLotSort []model.ParkingItf
+	Car            *model.Car
+	Ticket         string
+	ParkirFull     ParkirFull
+	styleSort      bool
 	// Subscription Subscription
 }
 
@@ -112,11 +113,12 @@ func NewTicket(number string, car model.Car) *Ticket {
 func NewAttendant(name string, lot model.ParkingItf, style bool) *Attendant {
 	attendantId++
 	return &Attendant{
-		id:         string(rune(attendantId)),
-		Name:       name,
-		ParkingLot: []model.ParkingItf{lot},
-		ParkirFull: ParkirFull{},
-		styleSort:  style,
+		id:             string(rune(attendantId)),
+		Name:           name,
+		ParkingLot:     []model.ParkingItf{lot},
+		ParkingLotSort: []model.ParkingItf{lot},
+		ParkirFull:     ParkirFull{},
+		styleSort:      style,
 		// Subscription: subscribe,
 	}
 }
@@ -129,11 +131,11 @@ func (p *Parking) GetMaximum() int {
 	return p.MaxLot
 }
 
-func (a *Attendant) AddParkingLot(parkir model.ParkingItf) {
-	a.ParkingLot = append(a.ParkingLot, parkir)
-	if a.styleSort {
-		a.ArrangeParkingLot()
-	}
+func (a *Attendant) AddParkingLot(parkir ...model.ParkingItf) {
+	a.ParkingLot = append(a.ParkingLot, parkir...)
+	a.ParkingLotSort = append(a.ParkingLotSort, parkir...)
+	a.ArrangeParkingLot()
+
 }
 
 func (a *Attendant) Update(name string, status bool) bool {
@@ -153,12 +155,16 @@ func (a *Attendant) GetID() string {
 }
 
 func (a *Attendant) ArrangeParkingLot() {
-	sort.Slice(a.ParkingLot, func(i, j int) bool {
-		return a.ParkingLot[i].GetMaximum() > a.ParkingLot[j].GetMaximum()
+	sort.Slice(a.ParkingLotSort, func(i, j int) bool {
+		return a.ParkingLotSort[i].GetMaximum() > a.ParkingLotSort[j].GetMaximum()
 	})
-	for _, v := range a.ParkingLot {
+	for _, v := range a.ParkingLotSort {
 		fmt.Println(v)
 	}
+}
+
+func (a *Attendant) ChangeStyle() {
+	a.styleSort = !a.styleSort
 }
 
 // func (a *Attendant) ToggleSubscription(parkir Parking) {
@@ -319,8 +325,12 @@ func (p *Parking) GetCar(ps *model.ParkingSystem, ticket string) (string, error)
 
 func (a *Attendant) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error) {
 	a.Car = car
-	for i := range len(a.ParkingLot) {
-		p := a.ParkingLot[i]
+	parkingUsed := a.ParkingLot
+	if a.styleSort {
+		parkingUsed = a.ParkingLotSort
+	}
+	for i := range len(parkingUsed) {
+		p := parkingUsed[i]
 		res, err := p.CheckCarExist(car)
 		if err != nil {
 			return res, err

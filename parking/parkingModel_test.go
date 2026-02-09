@@ -228,18 +228,20 @@ func TestAttendant_WithMock_GetCar_GivenValidTicket_ShouldReturnCar(t *testing.T
 
 // 	parkingLot := mockparking.NewMockParkingItf(ctrl)
 // 	att := NewAttendant("nama 1", parkingLot, true)
-// 	parkir := parking.NewParking("parkir 1", 1)
-// 	parkir2 := parking.NewParking("parkir 2", 1)
-// 	parkir3 := parking.NewParking("parkir 3", 2)
+// 	parkir := NewParking("parkir 1", 1)
+// 	parkir2 := NewParking("parkir 2", 2)
+
+// 	// parkir3 := NewParking("parkir 3", 2)
 
 // 	// When
 
-// 	parkingLot.EXPECT().GetMaximum().Return(gomock.Any()).Times(3)
+// 	parkingLot.EXPECT().GetMaximum().Return(1).Times(2)
+// 	// parkingLot.EXPECT().GetName().Return(gomock.Any()).Times(1)
 
-// 	result, err := att.ArrangeParkingLot()
+// 	att.AddParkingLot(parkir, parkir2)
 
 // 	// Then
 
-// 	assert.Equal(t, "Car successfully unparked", result)
-// 	assert.NoError(t, err)
+// 	// assert.Equal(t, "Car successfully unparked", result)
+// 	// assert.NoError(t, err)
 // }
