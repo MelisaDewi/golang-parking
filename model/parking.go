@@ -30,6 +30,8 @@ type ParkingItf interface {
 
 	GetName() string
 	GetMaximum() int
+	GetStatus() bool
+	GetFreeSpace() int
 }
 
 func NewCar(tipe, colour, plateNum string) *Car {

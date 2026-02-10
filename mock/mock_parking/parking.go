@@ -85,6 +85,20 @@ func (mr *MockParkingItfMockRecorder) GetCar(ps, ticket any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCar", reflect.TypeOf((*MockParkingItf)(nil).GetCar), ps, ticket)
 }
 
+// GetFreeSpace mocks base method.
+func (m *MockParkingItf) GetFreeSpace() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFreeSpace")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetFreeSpace indicates an expected call of GetFreeSpace.
+func (mr *MockParkingItfMockRecorder) GetFreeSpace() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFreeSpace", reflect.TypeOf((*MockParkingItf)(nil).GetFreeSpace))
+}
+
 // GetMaximum mocks base method.
 func (m *MockParkingItf) GetMaximum() int {
 	m.ctrl.T.Helper()
@@ -111,4 +125,18 @@ func (m *MockParkingItf) GetName() string {
 func (mr *MockParkingItfMockRecorder) GetName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetName", reflect.TypeOf((*MockParkingItf)(nil).GetName))
+}
+
+// GetStatus mocks base method.
+func (m *MockParkingItf) GetStatus() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStatus")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// GetStatus indicates an expected call of GetStatus.
+func (mr *MockParkingItfMockRecorder) GetStatus() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatus", reflect.TypeOf((*MockParkingItf)(nil).GetStatus))
 }

@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	maxLotLessThanZero        = errors.New("max lot should be at least 0")
 	noAvailableSpace          = errors.New("no available parking space")
 	wrongParkingLot           = errors.New("wrong parking lot")
 	unrecognizedParkingLot    = errors.New("unrecognized parking lot")
@@ -22,6 +23,14 @@ var (
 var (
 	ticketNum   int = 0
 	attendantId int = 0
+)
+
+type ParkingStyle int
+
+const (
+	Sequential ParkingStyle = iota
+	HighestMaxLot
+	HighestFreeSpace
 )
 
 type Car struct {
@@ -41,24 +50,26 @@ type ParkingSystem struct {
 }
 
 type Parking struct {
-	Name         string
-	MaxLot       int
-	LotCounter   int
-	Status       bool
-	Car          []model.Car
-	Ticket       []Ticket
-	observerList []observer.Observer
+	Name             string
+	MaxLot           int
+	LotCounter       int
+	FreeSpaceCounter int
+	Status           bool
+	Car              []model.Car
+	Ticket           []Ticket
+	observerList     []observer.Observer
 }
 
 type Attendant struct {
-	id             string
-	Name           string
-	ParkingLot     []model.ParkingItf
-	ParkingLotSort []model.ParkingItf
-	Car            *model.Car
-	Ticket         string
-	ParkirFull     ParkirFull
-	styleSort      bool
+	id                      string
+	Name                    string
+	ParkingLot              []model.ParkingItf
+	ParkingLotSort          []model.ParkingItf
+	ParkingLotSortFreeSpace []model.ParkingItf
+	Car                     *model.Car
+	Ticket                  string
+	ParkirFull              ParkirFull
+	styleSort               ParkingStyle
 	// Subscription Subscription
 }
 
@@ -93,14 +104,25 @@ func NewParkingSystem() ParkingSystem {
 		// TicketCounter: ticketCounter,
 	}
 }
-func NewParking(name string, maxLot int) *Parking {
-	return &Parking{
-		Name:       name,
-		Status:     false,
-		MaxLot:     maxLot,
-		LotCounter: 0,
-		// TicketCounter: ticketCounter,
+func NewParking(name string, maxLot int) (*Parking, error) {
+	if maxLot < 0 {
+		return &Parking{
+			Name:             name,
+			Status:           false,
+			MaxLot:           0,
+			FreeSpaceCounter: 0,
+			LotCounter:       0,
+			// TicketCounter: ticketCounter,
+		}, maxLotLessThanZero
 	}
+	return &Parking{
+		Name:             name,
+		Status:           false,
+		MaxLot:           maxLot,
+		FreeSpaceCounter: maxLot,
+		LotCounter:       0,
+		// TicketCounter: ticketCounter,
+	}, nil
 }
 
 func NewTicket(number string, car model.Car) *Ticket {
@@ -110,15 +132,16 @@ func NewTicket(number string, car model.Car) *Ticket {
 	}
 }
 
-func NewAttendant(name string, lot model.ParkingItf, style bool) *Attendant {
+func NewAttendant(name string, lot model.ParkingItf, style ParkingStyle) *Attendant {
 	attendantId++
 	return &Attendant{
-		id:             string(rune(attendantId)),
-		Name:           name,
-		ParkingLot:     []model.ParkingItf{lot},
-		ParkingLotSort: []model.ParkingItf{lot},
-		ParkirFull:     ParkirFull{},
-		styleSort:      style,
+		id:                      string(rune(attendantId)),
+		Name:                    name,
+		ParkingLot:              []model.ParkingItf{lot},
+		ParkingLotSort:          []model.ParkingItf{lot},
+		ParkingLotSortFreeSpace: []model.ParkingItf{lot},
+		ParkirFull:              ParkirFull{},
+		styleSort:               style,
 		// Subscription: subscribe,
 	}
 }
@@ -131,20 +154,31 @@ func (p *Parking) GetMaximum() int {
 	return p.MaxLot
 }
 
+func (p *Parking) GetStatus() bool {
+	return p.Status
+}
+
+func (p *Parking) GetFreeSpace() int {
+	return p.FreeSpaceCounter
+}
+
 func (a *Attendant) AddParkingLot(parkir ...model.ParkingItf) {
 	a.ParkingLot = append(a.ParkingLot, parkir...)
 	a.ParkingLotSort = append(a.ParkingLotSort, parkir...)
-	a.ArrangeParkingLot()
+	a.ParkingLotSortFreeSpace = append(a.ParkingLotSort, parkir...)
+	a.ArrangeParkingLotMaxLot()
+	a.ArrangeParkingLotFreeSpace()
+	// fmt.Println("Parking lot free space", a.ParkingLotSortFreeSpace)
 
 }
 
 func (a *Attendant) Update(name string, status bool) bool {
 	if status {
-		fmt.Println("Parking ", name, " full")
+		fmt.Println("Dikirim ke attendant", a.Name, "Parking ", name, " full")
 		a.ParkirFull[name] = status
 		return status
 	} else {
-		fmt.Println("Parking ", name, " not full")
+		fmt.Println("Dikirim ke attendant", a.Name, "Parking ", name, " not full")
 		a.ParkirFull[name] = status
 		return status
 	}
@@ -154,17 +188,27 @@ func (a *Attendant) GetID() string {
 	return a.id
 }
 
-func (a *Attendant) ArrangeParkingLot() {
+func (a *Attendant) ArrangeParkingLotMaxLot() {
 	sort.Slice(a.ParkingLotSort, func(i, j int) bool {
 		return a.ParkingLotSort[i].GetMaximum() > a.ParkingLotSort[j].GetMaximum()
 	})
-	for _, v := range a.ParkingLotSort {
-		fmt.Println(v)
-	}
+	// for _, v := range a.ParkingLotSort {
+	// 	fmt.Println(v)
+	// }
 }
 
-func (a *Attendant) ChangeStyle() {
-	a.styleSort = !a.styleSort
+func (a *Attendant) ArrangeParkingLotFreeSpace() {
+	sort.Slice(a.ParkingLotSortFreeSpace, func(i, j int) bool {
+		return a.ParkingLotSortFreeSpace[i].GetFreeSpace() > a.ParkingLotSortFreeSpace[j].GetFreeSpace()
+	})
+	// for _, v := range a.ParkingLotSortFreeSpace {
+	// 	fmt.Println("Function sorting free space")
+	// 	fmt.Println(v.GetName())
+	// }
+}
+
+func (a *Attendant) ChangeStyle(style ParkingStyle) {
+	a.styleSort = style
 }
 
 // func (a *Attendant) ToggleSubscription(parkir Parking) {
@@ -262,6 +306,7 @@ func (p *Parking) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error
 	// }
 	if p.MaxLot > len(p.Car) {
 		p.LotCounter++
+		p.FreeSpaceCounter--
 		ticketNumber := "ticket#" + strconv.Itoa(ticketNum)
 		ticketNum++
 		// fmt.Println("Car yg diappend ", car)
@@ -270,6 +315,7 @@ func (p *Parking) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error
 		ticket := NewTicket(ticketNumber, *car)
 		p.Ticket = append(p.Ticket, *ticket)
 		ps.Ticket[ticketNumber] = struct{}{}
+		ps.CarNum[car.PlateNum] = struct{}{}
 		if p.MaxLot == p.LotCounter {
 
 			p.CheckFull()
@@ -300,6 +346,7 @@ func (p *Parking) GetCar(ps *model.ParkingSystem, ticket string) (string, error)
 						p.Car = append(p.Car[:j], p.Car[j+1:]...)
 						p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
 						p.LotCounter--
+						p.FreeSpaceCounter++
 						// fmt.Println(p.LotCounter, p.MaxLot-1)
 						if p.LotCounter == p.MaxLot-1 {
 							p.CheckFull()
@@ -326,19 +373,34 @@ func (p *Parking) GetCar(ps *model.ParkingSystem, ticket string) (string, error)
 func (a *Attendant) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error) {
 	a.Car = car
 	parkingUsed := a.ParkingLot
-	if a.styleSort {
+	if a.styleSort == HighestMaxLot {
 		parkingUsed = a.ParkingLotSort
+	} else if a.styleSort == HighestFreeSpace {
+		a.ArrangeParkingLotFreeSpace()
+		parkingUsed = a.ParkingLotSortFreeSpace
 	}
+	res, err := ps.CheckCarExist(car)
+	if err != nil {
+		return res, err
+	}
+
+	// fmt.Println("Parking used ", parkingUsed[len(parkingUsed)-1].GetName())
+	// fmt.Println("Len i", len(parkingUsed))
 	for i := range len(parkingUsed) {
 		p := parkingUsed[i]
-		res, err := p.CheckCarExist(car)
-		if err != nil {
-			return res, err
-		}
-		// fmt.Println("nama parkir yg dimasukin ", p.Name)
+		// if p.GetStatus() {
+		// 	continue
+		// }
+		// res, err := p.CheckCarExist(car)
+		// if err != nil {
+		// 	return res, err
+		// }
+		// fmt.Println("nama parkir yg dimasukin ", p.GetName())
+		// fmt.Println("Parkir yg dicek sebelum notif", p.GetName())
 		if a.ParkirFull[p.GetName()] {
 			continue
 		}
+		// fmt.Println("Parkir yg dicek", p.GetName())
 		// val, _ := a.CheckFUll(*p)
 		// if val == true {
 		// 	fmt.Println("Parkiran ", p.Name, " penuh")
@@ -348,11 +410,9 @@ func (a *Attendant) AddCar(ps *model.ParkingSystem, car *model.Car) (string, err
 		if err == nil {
 			a.Ticket = res
 			a.Car = nil
-			// fmt.Println("Diisi di parkiran ", p.Name, " mobilnya ", p.Car)
+			fmt.Println("Diisi di parkiran ", p.GetName(), " mobilnya ", car)
 			// p.CheckFull()
 			return res, nil
-		} else {
-			return res, err
 		}
 	}
 	return "Kayaknya parkirannya penuh", noAvailableSpace

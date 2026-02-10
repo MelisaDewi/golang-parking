@@ -1,0 +1,22 @@
+Parkir 1 -> 5
+Parkir 2 -> 6
+Parkir 3 -> 5
+
+if sortMaxFreeSpace -> (2, 1, 3)
+AddCar -> Parkir 2 -> 5
+AddCar -> Parkir 2 -> 4
+AddCar -> Parkir 1 -> 4
+AddCar -> Parkir 3 -> 4
+
+
+if sortMaxLot -> (2, 1, 3)
+AddCar -> Parkir 2 -> 5
+AddCar -> Parkir 2 -> 4
+AddCar -> Parkir 2 -> 3
+AddCar -> Parkir 2 -> 2
+
+if noSort -> (1, 2, 3)
+AddCar -> Parkir 1 -> 4
+AddCar -> Parkir 1 -> 3
+AddCar -> Parkir 1 -> 2
+AddCar -> Parkir 1 -> 1
