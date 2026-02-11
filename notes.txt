@@ -20,3 +20,7 @@ AddCar -> Parkir 1 -> 4
 AddCar -> Parkir 1 -> 3
 AddCar -> Parkir 1 -> 2
 AddCar -> Parkir 1 -> 1
+
+Att 1 -> 3, 3, 3
+Att 1 -> 3, 3
+Att 2 -> 2, 1

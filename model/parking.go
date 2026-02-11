@@ -1,10 +1,24 @@
 package model
 
-import "errors"
+import (
+	"errors"
+	"maps"
+	"slices"
+	"strings"
+)
+
+type ParkingStyle int
+
+const (
+	Sequential ParkingStyle = iota
+	HighestMaxLot
+	HighestFreeSpace
+)
 
 var (
 	carAlreadyParked          = errors.New("car already parked")
 	unrecognizedParkingTicket = errors.New("unrecognized parking ticket")
+	noParkingTicketAvailable  = errors.New("no available parking ticket")
 )
 
 type Car struct {
@@ -32,6 +46,7 @@ type ParkingItf interface {
 	GetMaximum() int
 	GetStatus() bool
 	GetFreeSpace() int
+	GetOccupiedSpace() int
 }
 
 func NewCar(tipe, colour, plateNum string) *Car {
@@ -59,9 +74,26 @@ func (ps *ParkingSystem) CheckCarExist(car *Car) (string, error) {
 }
 
 func (ps *ParkingSystem) CheckTicketExist(ticket string) (string, error) {
+	if len(ticket) < 1 {
+		return "Invalid ticket", unrecognizedParkingTicket
+	}
+	if ticket[:1] != "#" {
+		return "Invalid ticket", unrecognizedParkingTicket
+	}
 	_, ok := ps.Ticket[ticket]
 	if ok {
 		return "Ticket exists", nil
 	}
 	return "Invalid ticket", unrecognizedParkingTicket
+}
+
+func (ps *ParkingSystem) AvailableTickets() (string, error) {
+	if len(ps.Ticket) > 0 {
+		availTickets := maps.Keys(ps.Ticket)
+		availTicketsSlice := slices.Collect(availTickets)
+
+		result := strings.Join(availTicketsSlice, ", ")
+		return result, nil
+	}
+	return "No ticket available", noParkingTicketAvailable
 }

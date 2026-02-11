@@ -3,10 +3,13 @@ package parking
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"parkingLot/model"
 	"parkingLot/observer"
+	"slices"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -15,6 +18,7 @@ var (
 	wrongParkingLot           = errors.New("wrong parking lot")
 	unrecognizedParkingLot    = errors.New("unrecognized parking lot")
 	unrecognizedParkingTicket = errors.New("unrecognized parking ticket")
+	noParkingTicketAvailable  = errors.New("no available parking ticket")
 	carAlreadyParked          = errors.New("car already parked")
 	cannotFindCar             = errors.New("car is not in the parking lot")
 	noSubscribe               = errors.New("does not subscribe")
@@ -32,6 +36,45 @@ const (
 	HighestMaxLot
 	HighestFreeSpace
 )
+
+type ParkingTypeItf interface {
+	Priority(a *Attendant, style ParkingStyle) []model.ParkingItf
+}
+
+type SortSequential struct{}
+
+func (s SortSequential) Priority(a *Attendant, style ParkingStyle) []model.ParkingItf {
+	a.styleSort = style
+	return a.ParkingLot
+}
+
+type SortMaxLot struct{}
+
+func (s SortMaxLot) Priority(a *Attendant, style ParkingStyle) []model.ParkingItf {
+	a.styleSort = style
+	// sort.Slice(a.ParkingLotSort, func(i, j int) bool {
+	// 	return a.ParkingLotSort[i].GetMaximum() > a.ParkingLotSort[j].GetMaximum()
+	// })
+	return a.ParkingLotSort
+	// for _, v := range a.ParkingLotSort {
+	// 	fmt.Println(v)
+	// }
+}
+
+type SortFreeSpace struct{}
+
+func (s SortFreeSpace) Priority(a *Attendant, style ParkingStyle) []model.ParkingItf {
+	a.styleSort = style
+	sort.Slice(a.ParkingLotSortFreeSpace, func(i, j int) bool {
+		return a.ParkingLotSortFreeSpace[i].GetFreeSpace() > a.ParkingLotSortFreeSpace[j].GetFreeSpace()
+	})
+	return a.ParkingLotSortFreeSpace
+	// for _, v := range a.ParkingLotSortFreeSpace {
+	// 	fmt.Println("Function sorting free space")
+	// 	fmt.Println(v.GetName())
+	// }
+
+}
 
 type Car struct {
 	Tipe     string
@@ -70,6 +113,7 @@ type Attendant struct {
 	Ticket                  string
 	ParkirFull              ParkirFull
 	styleSort               ParkingStyle
+	ParkingStyle            ParkingTypeItf
 	// Subscription Subscription
 }
 
@@ -132,7 +176,7 @@ func NewTicket(number string, car model.Car) *Ticket {
 	}
 }
 
-func NewAttendant(name string, lot model.ParkingItf, style ParkingStyle) *Attendant {
+func NewAttendant(name string, lot model.ParkingItf, style ParkingTypeItf) *Attendant {
 	attendantId++
 	return &Attendant{
 		id:                      string(rune(attendantId)),
@@ -141,7 +185,21 @@ func NewAttendant(name string, lot model.ParkingItf, style ParkingStyle) *Attend
 		ParkingLotSort:          []model.ParkingItf{lot},
 		ParkingLotSortFreeSpace: []model.ParkingItf{lot},
 		ParkirFull:              ParkirFull{},
-		styleSort:               style,
+		ParkingStyle:            style,
+		// Subscription: subscribe,
+	}
+}
+
+func NewAttendantNoLot(name string, style ParkingTypeItf) *Attendant {
+	attendantId++
+	return &Attendant{
+		id:                      string(rune(attendantId)),
+		Name:                    name,
+		ParkingLot:              []model.ParkingItf{},
+		ParkingLotSort:          []model.ParkingItf{},
+		ParkingLotSortFreeSpace: []model.ParkingItf{},
+		ParkirFull:              ParkirFull{},
+		ParkingStyle:            style,
 		// Subscription: subscribe,
 	}
 }
@@ -160,6 +218,10 @@ func (p *Parking) GetStatus() bool {
 
 func (p *Parking) GetFreeSpace() int {
 	return p.FreeSpaceCounter
+}
+
+func (p *Parking) GetOccupiedSpace() int {
+	return p.LotCounter
 }
 
 func (a *Attendant) AddParkingLot(parkir ...model.ParkingItf) {
@@ -188,6 +250,13 @@ func (a *Attendant) GetID() string {
 	return a.id
 }
 
+func (a *Attendant) CheckParkingExist() bool {
+	if len(a.ParkingLot) > 0 {
+		return true
+	}
+	return false
+}
+
 func (a *Attendant) ArrangeParkingLotMaxLot() {
 	sort.Slice(a.ParkingLotSort, func(i, j int) bool {
 		return a.ParkingLotSort[i].GetMaximum() > a.ParkingLotSort[j].GetMaximum()
@@ -211,19 +280,14 @@ func (a *Attendant) ChangeStyle(style ParkingStyle) {
 	a.styleSort = style
 }
 
-// func (a *Attendant) ToggleSubscription(parkir Parking) {
-// 	a.Subscription[parkir.Name] = !a.Subscription[parkir.Name]
-// }
+func (a *Attendant) ChangeParkingT(styleParking ParkingTypeItf) []model.ParkingItf {
+	result := a.ParkingStyle.Priority(a, a.styleSort)
+	return result
+}
 
-// func (a *Attendant) CheckFUll(parkir Parking) (bool, error) {
-// 	_, ok := a.Subscription[parkir.Name]
-// 	if ok {
-// 		if parkir.Status == true {
-// 			return true, noAvailableSpace
-// 		}
-// 	}
-// 	return false, noSubscribe
-// }
+func (a *Attendant) ChangeParkingType(styleParking ParkingTypeItf) {
+	a.ParkingStyle = styleParking
+}
 
 func (p *Parking) Register(o observer.Observer) {
 	p.observerList = append(p.observerList, o)
@@ -251,16 +315,14 @@ func removeFromslice(observerList []observer.Observer, observerToRemove observer
 }
 
 func (p *Parking) CheckFull() bool {
-	fmt.Println(p.MaxLot-1, p.LotCounter)
+	// fmt.Println(p.MaxLot-1, p.LotCounter)
 	if p.MaxLot == p.LotCounter {
 		p.Status = true
 		p.NotifyAll()
 		return true
-	} else if p.MaxLot-1 == p.LotCounter {
-		p.Status = false
-		p.NotifyAll()
-		return false
 	}
+	p.Status = false
+	p.NotifyAll()
 	return false
 }
 
@@ -286,6 +348,12 @@ func (ps *ParkingSystem) CheckCarExist(car *Car) (string, error) {
 }
 
 func (ps *ParkingSystem) CheckTicketExist(ticket string) (string, error) {
+	if len(ticket) < 1 {
+		return "Invalid ticket", unrecognizedParkingTicket
+	}
+	if ticket[:1] != "#" {
+		return "Invalid ticket", unrecognizedParkingTicket
+	}
 	_, ok := ps.Ticket[ticket]
 	if ok {
 		return "Ticket exists", nil
@@ -293,21 +361,22 @@ func (ps *ParkingSystem) CheckTicketExist(ticket string) (string, error) {
 	return "Invalid ticket", unrecognizedParkingTicket
 }
 
+func (ps *ParkingSystem) AvailableTickets() (string, error) {
+	if len(ps.Ticket) > 0 {
+		availTickets := maps.Keys(ps.Ticket)
+		availTicketsSlice := slices.Collect(availTickets)
+
+		result := strings.Join(availTicketsSlice, ", ")
+		return result, nil
+	}
+	return "No ticket available", noParkingTicketAvailable
+}
+
 func (p *Parking) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error) {
-	// fmt.Println(p.Car)
-	// for i := range len(p.Car) {
-	// 	// fmt.Println(i)
-	// 	fmt.Println(len(p.Car))
-	// 	fmt.Println("masuk", car.PlateNum, "dicek", p.Car[i].PlateNum)
-	// 	if car.PlateNum == p.Car[i].PlateNum {
-	// 		return "Car already parked", carAlreadyParked
-	// 	}
-	// 	// fmt.Println("sampe sini")
-	// }
 	if p.MaxLot > len(p.Car) {
 		p.LotCounter++
 		p.FreeSpaceCounter--
-		ticketNumber := "ticket#" + strconv.Itoa(ticketNum)
+		ticketNumber := "#" + strconv.Itoa(ticketNum)
 		ticketNum++
 		// fmt.Println("Car yg diappend ", car)
 		p.Car = append(p.Car, *car)
@@ -323,48 +392,35 @@ func (p *Parking) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error
 		// p.Ticket[ticket.Number] = p.Ticket[ticket.Car.Tipe]
 		return ticket.Number, nil
 	} else {
-		// p.Status = true
-		// p.NotifyAll()
 		return "Cannot park", noAvailableSpace
 	}
 }
 
 func (p *Parking) GetCar(ps *model.ParkingSystem, ticket string) (string, error) {
-	// fmt.Println(ticket)
-	_, err := ps.CheckTicketExist(ticket)
-	if err == nil {
-		for i := range p.Ticket {
-			// fmt.Println("Avail parking tickets ", p.Ticket)
-			// fmt.Println("Avail cars ", p.Car)
-			// fmt.Println("Parking ticket ", p.Ticket[i].Number)
-			// fmt.Println("Yg dipake ", ticket)
-			if p.Ticket[i].Number == ticket {
-				for j := range len(p.Car) {
-					// fmt.Println(p.Car[j].PlateNum)
-					// fmt.Println(p.Ticket[j].Car.PlateNum)
-					if p.Car[j].PlateNum == p.Ticket[i].Car.PlateNum {
-						p.Car = append(p.Car[:j], p.Car[j+1:]...)
-						p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
-						p.LotCounter--
-						p.FreeSpaceCounter++
-						// fmt.Println(p.LotCounter, p.MaxLot-1)
-						if p.LotCounter == p.MaxLot-1 {
-							p.CheckFull()
-						}
-						// fmt.Println("Pas udh diambil tiketnya ", p.Ticket)
-						// fmt.Println("Pas udh diambil mobilnya ", p.Car)
 
-						return "Car successfully unparked", nil
+	for i := range p.Ticket {
+		if p.Ticket[i].Number == ticket {
+			for j := range len(p.Car) {
+				if p.Car[j].PlateNum == p.Ticket[i].Car.PlateNum {
+					carPlateNum := p.Ticket[i].Car.PlateNum
+					delete(ps.CarNum, p.Car[j].PlateNum)
+					delete(ps.Ticket, ticket)
+					p.Car = append(p.Car[:j], p.Car[j+1:]...)
+					p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
+					p.LotCounter--
+					p.FreeSpaceCounter++
+					// fmt.Println(p.LotCounter, p.MaxLot-1)
+					if p.LotCounter == p.MaxLot-1 {
+						p.CheckFull()
 					}
+					// fmt.Println("Pas udh diambil tiketnya ", p.Ticket)
+					// fmt.Println("Pas udh diambil mobilnya ", p.Car)
+
+					return fmt.Sprint("Car with plate ", carPlateNum, " has been unparked"), nil
 				}
 			}
 		}
 	}
-	// if len(ticket) < 7 {
-	// 	return "Invalid ticket", unrecognizedParkingTicket
-	// }
-	// if ticket[:7] != "ticket#" {
-	// 	return "Invalid ticket", unrecognizedParkingTicket
 	// }
 
 	return "Invalid ticket", unrecognizedParkingTicket
@@ -372,7 +428,32 @@ func (p *Parking) GetCar(ps *model.ParkingSystem, ticket string) (string, error)
 
 func (a *Attendant) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error) {
 	a.Car = car
-	parkingUsed := a.ParkingLot
+
+	res, err := ps.CheckCarExist(car)
+	if err != nil {
+		return res, err
+	}
+	parkingUsed := a.ChangeParkingT(a.ParkingStyle)
+	for i := range len(parkingUsed) {
+		p := parkingUsed[i]
+		if a.ParkirFull[p.GetName()] {
+			continue
+		}
+		res, err = p.AddCar(ps, a.Car)
+		if err == nil {
+			a.Ticket = res
+			a.Car = nil
+			// fmt.Println("Diisi di parkiran ", p.GetName(), " mobilnya ", car)
+			return res, nil
+		}
+	}
+	return "Kayaknya parkirannya penuh", noAvailableSpace
+}
+
+/*
+func (a *Attendant) AddCar(ps *model.ParkingSystem, car *model.Car) (string, error) {
+	a.Car = car
+	parkingUsed := a.ParkingStyle.Priority(a, )
 	if a.styleSort == HighestMaxLot {
 		parkingUsed = a.ParkingLotSort
 	} else if a.styleSort == HighestFreeSpace {
@@ -417,14 +498,19 @@ func (a *Attendant) AddCar(ps *model.ParkingSystem, car *model.Car) (string, err
 	}
 	return "Kayaknya parkirannya penuh", noAvailableSpace
 }
+*/
 
 func (a *Attendant) GetCar(ps *model.ParkingSystem, ticket string) (string, error) {
-	// if len(ticket) < 7 {
-	// 	return "Invalid ticket", unrecognizedParkingTicket
-	// }
-	// if ticket[:7] != "ticket#" {
-	// 	return "Invalid ticket", unrecognizedParkingTicket
-	// }
+	if len(ticket) < 1 {
+		return "Invalid ticket", unrecognizedParkingTicket
+	}
+	if ticket[:1] != "#" {
+		return "Invalid ticket", unrecognizedParkingTicket
+	}
+	res, err := ps.CheckTicketExist(ticket)
+	if err != nil {
+		return res, err
+	}
 
 	// for i := range len(a.Ticket) {
 	// 	if ticket == a.Ticket[i] {

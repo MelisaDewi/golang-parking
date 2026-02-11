@@ -99,6 +99,20 @@ func (mr *MockParkingItfMockRecorder) GetFreeSpace() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFreeSpace", reflect.TypeOf((*MockParkingItf)(nil).GetFreeSpace))
 }
 
+// GetLotCounter mocks base method.
+func (m *MockParkingItf) GetLotCounter() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLotCounter")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetLotCounter indicates an expected call of GetLotCounter.
+func (mr *MockParkingItfMockRecorder) GetLotCounter() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLotCounter", reflect.TypeOf((*MockParkingItf)(nil).GetLotCounter))
+}
+
 // GetMaximum mocks base method.
 func (m *MockParkingItf) GetMaximum() int {
 	m.ctrl.T.Helper()
