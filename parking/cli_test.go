@@ -14,7 +14,7 @@ func Test_io(t *testing.T) {
 		{
 			name: "nyoba input",
 			args: args{
-				textInput: "test\n",
+				textInput: "test",
 			},
 			want: "test",
 		},

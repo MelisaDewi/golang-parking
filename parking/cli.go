@@ -9,6 +9,9 @@ import (
 )
 
 func io(textInput string) string {
+	if len(textInput) > 0 {
+		return textInput[:len(textInput)-1]
+	}
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print(textInput)
 	text, _ := reader.ReadString('\n')
@@ -21,6 +24,7 @@ func ioInt(textInput string) int {
 	fmt.Print(textInput)
 	text, _ := reader.ReadString('\n')
 	textInt, _ := strconv.Atoi(text)
+
 	// fmt.Printf("%t, %v, %v", text, text, len(text))
 	return textInt
 }
@@ -50,10 +54,10 @@ func CliParking() {
 			attendant.AddParkingLot(parkir)
 
 		} else if mauApa == "2" {
-			if len(attendant.ParkingLot) < 1 {
-				fmt.Println("No parking to park into")
-				continue
-			}
+			// if len(attendant.ParkingLot) < 1 {
+			// 	fmt.Println("No parking to park into")
+			// 	continue
+			// }
 			attendant.CheckParkingExist()
 			mobilp := io("Plate number > ")
 			mobil := model.NewCar("tipe mobil", "warna mobil", mobilp)

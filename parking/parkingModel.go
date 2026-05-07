@@ -402,9 +402,11 @@ func (p *Parking) GetCar(ps *model.ParkingSystem, ticket string) (string, error)
 		if p.Ticket[i].Number == ticket {
 			for j := range len(p.Car) {
 				if p.Car[j].PlateNum == p.Ticket[i].Car.PlateNum {
+					//
 					carPlateNum := p.Ticket[i].Car.PlateNum
 					delete(ps.CarNum, p.Car[j].PlateNum)
 					delete(ps.Ticket, ticket)
+
 					p.Car = append(p.Car[:j], p.Car[j+1:]...)
 					p.Ticket = append(p.Ticket[:i], p.Ticket[i+1:]...)
 					p.LotCounter--
@@ -516,6 +518,10 @@ func (a *Attendant) GetCar(ps *model.ParkingSystem, ticket string) (string, erro
 	// 	if ticket == a.Ticket[i] {
 	for i := range len(a.ParkingLot) {
 		p := a.ParkingLot[i]
+		_, ok := a.ParkirFull[p.GetName()]
+		if ok {
+			continue
+		}
 		res, err := p.GetCar(ps, ticket)
 		if err == nil {
 			a.Ticket = ""
